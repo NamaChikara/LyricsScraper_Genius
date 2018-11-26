@@ -128,7 +128,8 @@ result = artist_albumRegex.search(album_url)
 artistName = result.group(2)
 albumName = result.group(3)
 
-titleHTML = "<h1>" + albumName.replace('-', ' ') + " by " + artistName.replace('-', ' ') + "</h1>"
+titleHTML = "<h1>" + albumName.replace('-', ' ').title()
+titleHTML += " by " + artistName.replace('-', ' ').title() + "</h1>"
 
 # extract the song titles from the lyrics links
 
@@ -138,12 +139,14 @@ titleRegex = re.compile(my_regex)
 titles = []
 
 for link in lyricsLinks:
-    dashed = titleRegex.search(link).group(2)
+    songTitle = titleRegex.search(link).group(2)
     # remove dashes from the titles
-    notDashed = dashed.replace('-', ' ')
+    songTitle = songTitle.replace('-', ' ')
+    # make title case
+    songTitle = songTitle.title()
     # add header tags
-    notDashed = "<h2>" + notDashed + "</h2>"
-    titles.append(notDashed)
+    songTitle = "<h2>" + songTitle + "</h2>"
+    titles.append(songTitle)
 # --------------------------------------------------------------------------
 
 
