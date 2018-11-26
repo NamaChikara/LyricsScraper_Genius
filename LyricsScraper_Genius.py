@@ -2,19 +2,26 @@ import requests
 import bs4
 import re
 import sys
+import os
 
-# load album_url and extract artist name (to be used to extract song titles)
 
-album_url = 'https://genius.com/albums/Adrianne-lenker/A-sides'
+# --------------------------------------------------------------------------
+# load album_url and destination folder for output HTML file
+# --------------------------------------------------------------------------
+album_url = 'https://genius.com/albums/Kevin-morby/Singing-saw'
+output_folder = r'C:\Users\zackb_000\Documents\Programming Projects\LyricsScraper_Genius\SavedLyrics'
 
-artistRegex = re.compile(r'''
-                            ^(.*?)      # match any text at the beginning
-                            /albums/
-                            (.*?)       # artist name (non-greedy)
-                            /(.*?)$
-                            ''', re.VERBOSE)
+# make sure folder is valid
 
-artistName = artistRegex.search(album_url).group(2)
+if not os.path.isdir(output_folder):
+    print('Not a valid location to save the lyrics file.')
+    sys.exit()
+# --------------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------------
+# navigate to the album_url and extract the lyrics links on that page
+# --------------------------------------------------------------------------
 
 # download the webpage for the album tracklist and create a BS object
 
@@ -48,19 +55,12 @@ for link in linkElements:
 if len(lyricsLinks) == 0:
     print('There were no lyrics links found.')
     sys.exit()
+# --------------------------------------------------------------------------
 
-# extract the song titles from the lyrics links
 
-my_regex = r"^(.*?)" + re.escape(artistName) + r"-(.*?)-lyrics"
-titleRegex = re.compile(my_regex)
-
-titles = []
-
-for link in lyricsLinks:
-    dashed = titleRegex.search(link).group(2)
-    # remove dashes from the titles
-    notDashed = dashed.replace('-', ' ')
-    titles.append(notDashed)
+# --------------------------------------------------------------------------
+# Extract the lyrics from each of the lyrics pages using BeautifulSoup
+# --------------------------------------------------------------------------
 
 # download the webpage for each lyric and create a list of BS objects
 
@@ -102,17 +102,69 @@ for ll in lyricsHTML:
 
 bracketRegex = re.compile(r'(&lt;)(.*?)(&gt;)')
 
-finalHTML = []
+final_lyricsHTML = []
 
 for ll in lyricsHTML:
     ll = str(ll)
-    finalHTML.append(bracketRegex.sub(r'<\2>', ll))
+    final_lyricsHTML.append(bracketRegex.sub(r'<\2>', ll))
+# --------------------------------------------------------------------------
 
+
+# --------------------------------------------------------------------------
+# Extract artist name and song titles and format for HTML document
+# --------------------------------------------------------------------------
+
+# extract artist name (to be used to extract song titles)
+
+artist_albumRegex = re.compile(r'''
+                                ^(.*?)      # match any text at the beginning
+                                /albums/
+                                (.*?)       # artist name (non-greedy)
+                                /               
+                                (.*?)$      # album name 
+                                ''', re.VERBOSE)
+
+result = artist_albumRegex.search(album_url)
+artistName = result.group(2)
+albumName = result.group(3)
+
+titleHTML = "<h1>" + albumName.replace('-', ' ') + " by " + artistName.replace('-', ' ') + "</h1>"
+
+# extract the song titles from the lyrics links
+
+my_regex = r"^(.*?)" + re.escape(artistName) + r"-(.*?)-lyrics"
+titleRegex = re.compile(my_regex)
+
+titles = []
+
+for link in lyricsLinks:
+    dashed = titleRegex.search(link).group(2)
+    # remove dashes from the titles
+    notDashed = dashed.replace('-', ' ')
+    # add header tags
+    notDashed = "<h2>" + notDashed + "</h2>"
+    titles.append(notDashed)
+# --------------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------------
 # create an HTML document and write in the lyrics
+# --------------------------------------------------------------------------
 
-HTML_file = open(r'C:\Users\zackb_000\Documents\Programming Projects\PythonExercises\GeneratedQuizzes\AL.html', 'w')
+# determine the file name and path
 
-for ll in finalHTML:
+file_name = artistName + "_" + albumName + ".html"
+output_file = os.path.join(output_folder, file_name)
+
+# open the file and write to it
+
+HTML_file = open(output_file, 'w')
+
+HTML_file.write(titleHTML)
+
+for tt, ll in zip(titles, final_lyricsHTML):
+    HTML_file.write(tt)
     HTML_file.write(str(ll))
 
 HTML_file.close()
+# --------------------------------------------------------------------------
