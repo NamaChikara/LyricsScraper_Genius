@@ -1,9 +1,9 @@
-import requests
-import bs4
-import re
-import sys
-import os
-
+import requests     # for downloading the webpage HTML sources
+import bs4          # for parsing the HTML
+import re           # regular expressions to extract artist/album name from url
+import sys          # exit in case of bad link
+import os           # for file management
+import webbrowser   # to open HTML document at the end
 
 # --------------------------------------------------------------------------
 # load album_url and destination folder for output HTML file
@@ -151,7 +151,7 @@ for link in lyricsLinks:
 
 
 # --------------------------------------------------------------------------
-# create an HTML document and write in the lyrics
+# create an HTML document and write in the lyrics, open the result
 # --------------------------------------------------------------------------
 
 # determine the file name and path
@@ -170,4 +170,8 @@ for tt, ll in zip(titles, final_lyricsHTML):
     HTML_file.write(str(ll))
 
 HTML_file.close()
+
+# open the final HTML page
+
+webbrowser.open(output_file)
 # --------------------------------------------------------------------------
