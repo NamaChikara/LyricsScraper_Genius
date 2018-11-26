@@ -235,6 +235,13 @@ for tt, ll in zip(titles, final_lyricsHTML):
     HTML_file.write(tt)
     HTML_file.write(str(ll))
 
+# add a link to my Github to give author credit
+
+authorString = "<h3>Written for Python 3.7 by Zachary Barry (2018). \
+                Visit my <a href='https://github.com/NamaChikara'>Github</a>.</h3>"
+
+HTML_file.write(authorString)
+
 HTML_file.close()
 
 # open the final HTML page
