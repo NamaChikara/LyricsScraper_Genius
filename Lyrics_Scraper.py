@@ -34,7 +34,7 @@ def get_lyric_links(album_url):
     # extract all links with class "u-display_block" (this is where song lyrics links are stored)
     link_elements = res_soup.find_all("a", "u-display_block")
 
-    # make sure each link is actually a lyrics link before adding to list of lyricLinks
+    # make sure each link is actually a lyrics link before adding to link_list
     link_list = []
     for link in link_elements:
         if lyrics_regex.match(link['href']):
@@ -120,6 +120,10 @@ def get_names_titles(album_url, link_list):
         song_title = song_title.replace('-', ' ')
         titles.append(song_title)
 
+    # now remove dashes from the names
+    artist_name = artist_name.replace('-', ' ')
+    album_name = album_name.replace('-', ' ')
+
     return [artist_name, album_name, titles]
 # --------------------------------------------------------------------------
 
@@ -154,15 +158,27 @@ def get_album_lyrics(album_url):
 
 
 # --------------------------------------------------------------------------
-# THIS SECTION IS A WORK IN PROGRESS (start)
 # The argument is an artist's page on Genius. Extract links to all the albums.
 # --------------------------------------------------------------------------
 
 
 def get_album_links(artist_url):
-    return 0
+    # download the artist's webpage and create a BS object
+    res = requests.get(artist_url)
+    try:
+        res.raise_for_status()
+    except Exception as exc:
+        print('There was a problem accessing the artist webpage (%s).' % exc)
+    res_soup = bs4.BeautifulSoup(res.text, features="html.parser")
 
-# THIS SECTION IS A WORK IN PROGRESS (end)
+    # extract all links with class "u-display_block" (this is where album links are stored)
+    link_elements = res_soup.find_all("a", r"vertical_album_card")
+
+    album_links = []
+    for link in link_elements:
+        album_links.append(link['href'])
+
+    return album_links
 # --------------------------------------------------------------------------
 
 
@@ -172,15 +188,17 @@ def get_album_links(artist_url):
 # --------------------------------------------------------------------------
 
 def get_everything(url, artist_page=False):
-    # THIS SECTION IS A WORK IN PROGRESS (start)
+
+    album_lyrics = []
+
     if artist_page:
         album_links = get_album_links(url)
-        lyrics_by_album = []
         for link in album_links:
-            album_lyrics = get_album_lyrics(link)
-            lyrics_by_album.append(album_lyrics)
-        return lyrics_by_album
-    # THIS SECTION IS A WORK IN PROGRESS (end)
-
+            album_data = get_album_lyrics(link)
+            album_lyrics.append(album_data)
     else:
-        return get_album_lyrics(url)
+        album_data = get_album_lyrics(url)
+        album_lyrics.append(album_data)
+        print(album_lyrics)
+
+    return album_lyrics
