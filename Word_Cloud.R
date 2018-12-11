@@ -12,8 +12,6 @@ lyrics_df <- read_csv('C:/Users/zackb_000/Documents/Programming Projects/LyricsS
 #  later on
 lyrics_df <- tibble::rowid_to_column(lyrics_df, "song_id")
 
-head(lyrics_df, 40)
-
 # ----------------------------------------------------------
 # Preprocessing
 # ----------------------------------------------------------
@@ -30,7 +28,7 @@ cleanTags <- function(htmlString) {
 lyrics_corpus <- lyrics_corpus %>% 
                     tm_map(cleanTags) %>%
                     tm_map(tolower) %>%
-                    tm_map(removeWords, stopwords("english")) %>%
+                    #tm_map(removeWords, stopwords("english")) %>%
                     tm_map(removeWords, c("verse", "chorus", "prechorus")) %>%
                     tm_map(removePunctuation) %>%
                     tm_map(removeNumbers) %>%
@@ -53,7 +51,7 @@ dtm <- DocumentTermMatrix(lyrics_corpus)
 dtm_df <- tidy(dtm)
 
 # prepare to left joint lyrics_df to dtm_df on song_id
-names(dtm_df)[names(dtm_df) == 'document'] <- 'song_id'
+names(dtm_df) <- c("song_id", "word", "count")
 dtm_df[,1] <- sapply(dtm_df[,1], as.integer)
 
 lyrics_df <- lyrics_df %>% 
@@ -61,10 +59,57 @@ lyrics_df <- lyrics_df %>%
 
 # remove unnecessary columns
 lyrics_df <- lyrics_df %>% 
-                select(c("Artist", "Song", "Album", "term", "count"))
+                select(c("Artist", "Album", "Song", "word", "count"))
 
-head(lyrics_df)
+# ----------------------------------------------------------
+# plot the most used words 
+# ----------------------------------------------------------
 
+# set the number of times a word needs to be used to plot it
+cutoff_count = 30
+
+lyrics_df %>%
+  # count word occurences; filter on cutoff_count
+  group_by(word) %>%
+  mutate(total_count = sum(count)) %>%
+  filter(total_count >= cutoff_count) %>%
+  ungroup() %>%
+  # reorder in terms of total_count 
+  mutate(word = reorder(word, total_count)) %>%
+  ggplot(aes(x = word, y = count, fill = Album)) +
+  geom_col() +
+  coord_flip() +
+  xlab("Word") + 
+  ylab("Total uses") +
+  ggtitle("Kevin Morby's top words")
+
+# ----------------------------------------------------------
+# plot the most used words of at least a certain length
+# ----------------------------------------------------------
+
+# set the number of times a word needs to be used to plot it
+long_cutoff_count = 10
+
+# set how long a word needs to be to plot it
+length_cutoff = 6
+
+lyrics_df %>%
+  # remove the short words
+  filter(nchar(word) >= length_cutoff) %>%
+  # count word occurences; filter on long_cutoff_count
+  group_by(word) %>%
+  mutate(total_count = sum(count)) %>%
+  filter(total_count >= long_cutoff_count) %>%
+  ungroup() %>%
+  # reoder in terms of total_count 
+  mutate(word = reorder(word, total_count)) %>%
+  ggplot(aes(x = word, y = count, fill = Album)) +
+  geom_col() +
+  coord_flip() +
+  xlab("Word") + 
+  ylab("Total uses") +
+  ggtitle("Kevin Morby's top long words")
+  
 
 # ----------------------------------------------------------
 # create Word Cloud based on terms accross all albums
@@ -78,6 +123,6 @@ head(lyrics_df)
 # 
 # # print(freq_df %>% arrange(desc(freq)))
 # 
-# wordcloud(words = freq_df$word, freq = freq_df$freq, min.freq = 4)
+# wordcloud(words = freq_df$word, freq = freq_df$freq, min.freq = 11)
 
 
