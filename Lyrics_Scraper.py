@@ -9,6 +9,7 @@
 import requests     # for downloading the webpage HTML sources
 import bs4          # for parsing the HTML
 import re           # regular expressions to extract artist/album name from url
+import sys
 
 # --------------------------------------------------------------------------
 # navigate to the album_url and extract the lyrics links on that page
@@ -116,13 +117,13 @@ def get_names_titles(album_url, link_list):
     titles = []
     for link in link_list:
         song_title = title_regex.search(link).group(2)
-        # remove dashes from the titles
-        song_title = song_title.replace('-', ' ')
+        # remove dashes from the titles and capitalize the first letters
+        song_title = song_title.replace('-', ' ').title()
         titles.append(song_title)
 
-    # now remove dashes from the names
-    artist_name = artist_name.replace('-', ' ')
-    album_name = album_name.replace('-', ' ')
+    # now remove dashes from the names and capitalize the first letters
+    artist_name = artist_name.replace('-', ' ').title()
+    album_name = album_name.replace('-', ' ').title()
 
     return [artist_name, album_name, titles]
 # --------------------------------------------------------------------------
@@ -171,12 +172,37 @@ def get_album_links(artist_url):
         print('There was a problem accessing the artist webpage (%s).' % exc)
     res_soup = bs4.BeautifulSoup(res.text, features="html.parser")
 
-    # extract all links with class "u-display_block" (this is where album links are stored)
-    link_elements = res_soup.find_all("a", r"vertical_album_card")
+    # extract all links with class "full_width_button" -- if the artist
+    #  has more than 6 albums, one of these is a link to a list of links
+    #  to the artist's albums
+    link_elements = res_soup.find_all("a", r"full_width_button")
+
+    album_list_link = ''
+    for link in link_elements:
+        if r'/artists/albums' in link['href']:
+            album_list_link = r"https://genius.com" + link['href']
+            break
 
     album_links = []
-    for link in link_elements:
-        album_links.append(link['href'])
+
+    # if link not found, it is likely because there are 6 or less albums
+    #  in this case they all show up on the artist page:
+    if album_list_link == '':
+        link_elements = res_soup.find_all("a", r"vertical_album_card")
+        for link in link_elements:
+            album_links.append(link['href'])
+
+    else:
+        # download the album list page and create a BS object
+        res = requests.get(album_list_link)
+        try:
+            res.raise_for_status()
+        except Exception as exc:
+            print('There was a problem accessing the album list page (%s).' % exc)
+        album_soup = bs4.BeautifulSoup(res.text, features="html.parser")
+        link_elements = album_soup.find_all("a", r"album_link")
+        for link in link_elements:
+            album_links.append(r"https://genius.com" + link["href"])
 
     return album_links
 # --------------------------------------------------------------------------
