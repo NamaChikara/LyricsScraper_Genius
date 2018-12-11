@@ -4,6 +4,14 @@ library(tm)
 library(wordcloud)
 library(tidytext)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create the dataframe necessary for plotting word usage
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# ----------------------------------------------------------
+# Read in data
+# ----------------------------------------------------------
+
 # read in lyrics data and extract the Lyrics column
 lyrics_df <- read_csv('C:/Users/zackb_000/Documents/Programming Projects/LyricsScraper_Genius/CSV_data/Kevin-morby_all-albums.csv')
 
@@ -13,7 +21,7 @@ lyrics_df <- read_csv('C:/Users/zackb_000/Documents/Programming Projects/LyricsS
 lyrics_df <- tibble::rowid_to_column(lyrics_df, "song_id")
 
 # ----------------------------------------------------------
-# Preprocessing
+# Clean the lyrics of punctuation, whitespace, etc.
 # ----------------------------------------------------------
 
 # create a corpus for each lyric
@@ -61,6 +69,17 @@ lyrics_df <- lyrics_df %>%
 lyrics_df <- lyrics_df %>% 
                 select(c("Artist", "Album", "Song", "word", "count"))
 
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Plotting
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# ----------------------------------------------------------
+# set string variables for plot labels
+# ----------------------------------------------------------
+
+artist_name = lyrics_df$Artist[1]
+
 # ----------------------------------------------------------
 # plot the most used words 
 # ----------------------------------------------------------
@@ -81,7 +100,7 @@ lyrics_df %>%
   coord_flip() +
   xlab("Word") + 
   ylab("Total uses") +
-  ggtitle("Kevin Morby's top words")
+  ggtitle(paste(artist_name, "'s top words", sep = ''))
 
 # ----------------------------------------------------------
 # plot the most used words of at least a certain length
@@ -108,9 +127,8 @@ lyrics_df %>%
   coord_flip() +
   xlab("Word") + 
   ylab("Total uses") +
-  ggtitle("Kevin Morby's top long words")
+  ggtitle(paste(artist_name, "'s top long words", sep = ''))
   
-
 # ----------------------------------------------------------
 # create Word Cloud based on terms accross all albums
 # ----------------------------------------------------------
@@ -124,5 +142,3 @@ lyrics_df %>%
 # # print(freq_df %>% arrange(desc(freq)))
 # 
 # wordcloud(words = freq_df$word, freq = freq_df$freq, min.freq = 11)
-
-
