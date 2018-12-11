@@ -47,7 +47,7 @@ output_file = os.path.join(output_folder, file_name)
 # open the file and write to it
 with open(output_file, 'w', newline='') as csvfile:
     filewriter = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-    filewriter.writerow(['Artist', 'Song', 'Album', 'Year', 'Lyrics'])
+    filewriter.writerow(['Artist', 'Album', 'Song', 'Year', 'Lyrics'])
     for album in lyrics_data:
         artist_name = album[0]
         album_name = album[1]
