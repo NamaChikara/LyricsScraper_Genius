@@ -18,7 +18,7 @@ import Lyrics_Scraper
 
 output_folder = r'C:\Users\zackb_000\Documents\Programming Projects\LyricsScraper_Genius\CSV_data'
 
-url1 = r'https://genius.com/artists/Kevin-morby/'
+url1 = r'https://genius.com/artists/The-national'
 
 url2 = r'https://genius.com/albums/Kevin-morby/City-music'
 
