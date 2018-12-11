@@ -13,7 +13,7 @@ library(tidytext)
 # ----------------------------------------------------------
 
 # read in lyrics data and extract the Lyrics column
-lyrics_df <- read_csv('C:/Users/zackb_000/Documents/Programming Projects/LyricsScraper_Genius/CSV_data/Kevin-morby_all-albums.csv')
+lyrics_df <- read_csv('C:/Users/zackb_000/Documents/Programming Projects/LyricsScraper_Genius/CSV_data/The-National_all-albums.csv')
 
 # add a column that labels each row with a sequential ID 
 #  this will be used to join lyrics_df to a DocumentTermMatrix 
@@ -25,7 +25,7 @@ lyrics_df <- tibble::rowid_to_column(lyrics_df, "song_id")
 # ----------------------------------------------------------
 
 # create a corpus for each lyric
-lyrics_corpus <- Corpus(DataframeSouce(lyrics_df))
+lyrics_corpus <- Corpus(VectorSource(lyrics_df$Lyrics))
 
 # function to remove html tags 
 cleanTags <- function(htmlString) {
@@ -36,7 +36,7 @@ cleanTags <- function(htmlString) {
 lyrics_corpus <- lyrics_corpus %>% 
                     tm_map(cleanTags) %>%
                     tm_map(tolower) %>%
-                    #tm_map(removeWords, stopwords("english")) %>%
+                    tm_map(removeWords, stopwords("english")) %>%
                     tm_map(removeWords, c("verse", "chorus", "prechorus")) %>%
                     tm_map(removePunctuation) %>%
                     tm_map(removeNumbers) %>%
@@ -53,7 +53,7 @@ lyrics_corpus <- lyrics_corpus %>%
 #  inspect(dtm[row_num,])
 dtm <- DocumentTermMatrix(lyrics_corpus)
 
-# use the tidytext package to turn the dtm into a datframe
+# use the tidytext package to turn the dtm into a dataframe
 #  where the variables are document, term, and count (where
 #  count > 0 to avoid sparsity problems)
 dtm_df <- tidy(dtm)
