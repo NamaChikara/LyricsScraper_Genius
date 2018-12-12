@@ -239,6 +239,61 @@ pirateplot(formula = Word_Count ~ Album,
            cex.lab = .9, cex.names = .7)
 
 # ----------------------------------------------------------
+# sentiment analysis
+# ----------------------------------------------------------
+
+# combine AFINN and bing lexicons from tidytext to create a 
+#  dictionary of words with positive/negative sentiments
+polar_sentiment <- sentiments %>%
+  mutate(sentiment = ifelse(lexicon == "AFINN" & score >= 0, "positive",
+                      ifelse(lexicon == "AFINN" & score < 0, "negative", sentiment))) %>%
+  filter(lexicon %in% c("AFINN", "bing")) %>%
+  distinct(word, .keep_all = TRUE) %>%
+  select(word, sentiment)
+
+# join this table to lyrics_df
+lyrics_sentiment <- lyrics_df %>%
+                      inner_join(polar_sentiment, by = "word")
+
+# calculate the sum of negative and positive words by song
+song_sentiment <- lyrics_sentiment %>% 
+  group_by(Album, Song, sentiment) %>%
+  mutate(sentiment_count = ifelse(sentiment == "negative", -sum(count), sum(count))) %>%
+  select(Artist, Album, Year, Song, sentiment, sentiment_count) %>%
+  distinct(sentiment, .keep_all = TRUE) %>%
+  ungroup()
+
+# add up the negative and positive sentiment to get a total
+total_song_sentiment <- song_sentiment %>%
+  group_by(Album, Song) %>%
+  mutate(total_sentiment = sum(sentiment_count)) %>%
+  select(Artist, Album, Year, Song, total_sentiment) %>%
+  distinct(Song, .keep_all = TRUE) %>%
+  ungroup() %>%
+  arrange(Year)
+
+# the width of the color regions correspond to the density
+#  of each group. i.e. how crowded or sparse the data is
+pirateplot(formula = total_sentiment ~ Album,
+           data = total_song_sentiment,
+           xlab = NULL, ylab = "Song Sentiment",
+           main = "Emotional Diversity per Album",
+           pal = "google",
+           sortx = "sequential", # use the same order as the data.frame
+           bar.f.o = .5, # opacity of bar fill
+           bar.b.o = .5, # opacity of bar border
+           point.o = .2, # opacity of the points
+           inf.f.o = 0,  # opacity of inference band fill
+           inf.b.o = 0,  # opacity of inference band border
+           avg.line.o  = .5, # opacity of the avg lines 
+           point.pch = 16,
+           point.cex = 1.5,
+           jitter.val = 0.1,  # horizontal displacement of points
+           #  for ease of viewing
+           quant.boxplot = FALSE,
+           cex.lab = .9, cex.names = .7)
+
+# ----------------------------------------------------------
 # create Word Cloud based on terms accross all albums
 # ----------------------------------------------------------
 
