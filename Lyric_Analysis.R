@@ -1,8 +1,9 @@
 # load tinyverse meta-package
-library(tidyverse)
-library(tm)
-library(wordcloud)
-library(tidytext)
+library(tidyverse)  # for dplyr and ggplot2
+library(tm)         # for processing lyrics
+library(wordcloud)  # for making word cloud
+library(tidytext)   # to go from DocumentTermMatrix to data.frame
+library(yarrr)      # for pirateplot()
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Create the dataframe necessary for plotting word usage
@@ -192,7 +193,6 @@ lyrics_df %>%
   xlab("Album") +
   ylab("Avg word length") +  
   theme(legend.position = 'none')
-  
 
 # ----------------------------------------------------------
 # plot the number of unique words per album over time
@@ -201,10 +201,42 @@ lyrics_df %>%
 lyrics_df %>%
   count(Album) %>%
   left_join(album_year, by = "Album") %>%
-  ggplot(aes(x = Album, y = n, color = Album)) +
+  ggplot(aes(x = factor(Album, level = album_year$Album), y = n, color = Album)) +
   geom_point() +
   xlab("Album") +
   ylab("Distinct word count")
+
+# ----------------------------------------------------------
+# unique words per album with distinct points for each song
+# ----------------------------------------------------------
+
+word_summary <- lyrics_df %>%
+  group_by(Album, Song) %>%
+  mutate(Word_Count = n_distinct(word)) %>%
+  select(Song, Album, Word_Count) %>%
+  distinct() %>%  # to obtain one record per song
+  ungroup()
+
+
+# the width of the color regions correspond to the density
+#  of each group. i.e. how crowded or sparse the data is
+pirateplot(formula = Word_Count ~ Album,
+           data = word_summary,
+           xlab = NULL, ylab = "Song Distinct Word Count",
+           main = "Lexical Diversity per Album",
+           pal = "google",
+           bar.f.o = .5, # opacity of bar fill
+           bar.b.o = .5, # opacity of bar border
+           point.o = .2, # opacity of the points
+           inf.f.o = 0,  # opacity of inference band fill
+           inf.b.o = 0,  # opacity of inference band border
+           avg.line.o  = .5, # opacity of the avg lines 
+           point.pch = 16,
+           point.cex = 1.5,
+           jitter.val = 0.1,  # horizontal displacement of points
+                              #  for ease of viewing
+           quant.boxplot = FALSE,
+           cex.lab = .9, cex.names = .7)
 
 # ----------------------------------------------------------
 # create Word Cloud based on terms accross all albums
