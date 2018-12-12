@@ -32,7 +32,9 @@ cleanTags <- function(htmlString) {
   return(gsub("<.*?>", "", htmlString))
 }
 
-# process the text
+# process the text (note: it may be usfull to apply
+#  tm(removeWords, stopwords("english")) later depending
+#  on the type of visualization that is desired)
 lyrics_corpus <- lyrics_corpus %>% 
                     tm_map(cleanTags) %>%
                     tm_map(tolower) %>%
@@ -67,8 +69,45 @@ lyrics_df <- lyrics_df %>%
 
 # remove unnecessary columns
 lyrics_df <- lyrics_df %>% 
-                select(c("Artist", "Album", "Song", "word", "count"))
+                select(c("Artist", "Album", "Song", "Year", "word", "count"))
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Select desired albums for analysis and specify their years
+# (optional)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+selection_on = TRUE
+
+desired_albums = c("Alligator", "Boxer", "Cherry Tree", "High Violet", 
+                   "Sad Songs For Dirty Lovers", "Sleep Well Beast", 
+                   "The National", "The Virginia Ep", "Trouble Will Find Me")
+
+desired_years = c(2005, 2007, 2004, 2010, 2003, 2017, 2001,
+                  2008, 2013)
+
+desired_df = data.frame() # built by joining desired_albums alongside desired_years
+                          #  if those vectors are nonempty
+
+if (length(desired_albums) > 0 && selection_on) {
+  if (length(desired_years) > 0) {
+    desired_df = data.frame(desired_albums, desired_years)
+    names(desired_df) <- c("Album", "Year")
+    lyrics_df <- lyrics_df %>%
+      # inner_join to get rid of observations where Album %notin% desired_albums
+      inner_join(desired_df, by = "Album") %>%
+      # make the year column equal to desired_df%Year
+      mutate(Year = Year.y) %>% 
+      select(Artist, Album, Year, Song, word, count)
+  }
+  else {
+    desired_df = data.frame(desired_albums)
+    names(desired_df) <- "Album"
+    lyrics_df <- lyrics_df %>%
+      # inner_join to get rid of observations where Album %notin% desired_albums
+      inner_join(desired_df, by = "Album") %>%
+      select(Artist, Album, Year, Song, word, count)
+  }
+}
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Plotting
@@ -81,11 +120,22 @@ lyrics_df <- lyrics_df %>%
 artist_name = lyrics_df$Artist[1]
 
 # ----------------------------------------------------------
+# create data.frame with Album and Year to refactor the x
+#  aesthetic when plotting by Album in ggplot so that 
+#  the plot is chronological instead of alphabetical
+# ----------------------------------------------------------
+
+album_year <- lyrics_df %>%
+  distinct(Album, .keep_all = TRUE) %>%
+  select(Album, Year) %>%
+  arrange(Year)
+
+# ----------------------------------------------------------
 # plot the most used words 
 # ----------------------------------------------------------
 
 # set the number of times a word needs to be used to plot it
-cutoff_count = 30
+cutoff_count = 60
 
 lyrics_df %>%
   # count word occurences; filter on cutoff_count
@@ -107,7 +157,7 @@ lyrics_df %>%
 # ----------------------------------------------------------
 
 # set the number of times a word needs to be used to plot it
-long_cutoff_count = 10
+long_cutoff_count = 25
 
 # set how long a word needs to be to plot it
 length_cutoff = 6
@@ -120,7 +170,7 @@ lyrics_df %>%
   mutate(total_count = sum(count)) %>%
   filter(total_count >= long_cutoff_count) %>%
   ungroup() %>%
-  # reoder in terms of total_count 
+  # reorder in terms of total_count 
   mutate(word = reorder(word, total_count)) %>%
   ggplot(aes(x = word, y = count, fill = Album)) +
   geom_col() +
@@ -128,7 +178,34 @@ lyrics_df %>%
   xlab("Word") + 
   ylab("Total uses") +
   ggtitle(paste(artist_name, "'s top long words", sep = ''))
+
+# ----------------------------------------------------------
+# plot the average word length
+# ----------------------------------------------------------
   
+lyrics_df %>% 
+  group_by(Album) %>%
+  mutate(avg = sum(nchar(word) * count) / sum(count)) %>%
+  distinct(Album, avg, .keep_all = TRUE) %>%
+  ggplot(aes(x = factor(Album, level = album_year$Album), y = avg, fill = Album)) +
+  geom_col() +
+  xlab("Album") +
+  ylab("Avg word length") +  
+  theme(legend.position = 'none')
+  
+
+# ----------------------------------------------------------
+# plot the number of unique words per album over time
+# ---------------------------------------------------------- 
+
+lyrics_df %>%
+  count(Album) %>%
+  left_join(album_year, by = "Album") %>%
+  ggplot(aes(x = Album, y = n, color = Album)) +
+  geom_point() +
+  xlab("Album") +
+  ylab("Distinct word count")
+
 # ----------------------------------------------------------
 # create Word Cloud based on terms accross all albums
 # ----------------------------------------------------------
