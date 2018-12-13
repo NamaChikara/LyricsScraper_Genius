@@ -111,7 +111,7 @@ if (length(desired_albums) > 0 && selection_on) {
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Plotting
+# Plotting word usage
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # ----------------------------------------------------------
@@ -213,8 +213,10 @@ lyrics_df %>%
 word_summary <- lyrics_df %>%
   group_by(Album, Song) %>%
   mutate(Word_Count = n_distinct(word)) %>%
-  select(Song, Album, Word_Count) %>%
+  inner_join(album_year, by = "Album") %>%
+  select(Song, Album, Word_Count, Year = Year.y) %>%
   distinct() %>%  # to obtain one record per song
+  arrange(Year) %>%
   ungroup()
 
 
@@ -224,6 +226,7 @@ pirateplot(formula = Word_Count ~ Album,
            data = word_summary,
            xlab = NULL, ylab = "Song Distinct Word Count",
            main = "Lexical Diversity per Album",
+           sortx = "sequential", # use the same order as the data.frame
            pal = "google",
            bar.f.o = .5, # opacity of bar fill
            bar.b.o = .5, # opacity of bar border
@@ -238,8 +241,12 @@ pirateplot(formula = Word_Count ~ Album,
            quant.boxplot = FALSE,
            cex.lab = .9, cex.names = .7)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Plotting sentiment
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 # ----------------------------------------------------------
-# sentiment analysis
+# import sentiment dictionary and attach to lyrics dataframe
 # ----------------------------------------------------------
 
 # combine AFINN and bing lexicons from tidytext to create a 
@@ -255,6 +262,10 @@ polar_sentiment <- sentiments %>%
 lyrics_sentiment <- lyrics_df %>%
                       inner_join(polar_sentiment, by = "word")
 
+# ----------------------------------------------------------
+# calculate total sentiment per song
+# ----------------------------------------------------------
+
 # calculate the sum of negative and positive words by song
 song_sentiment <- lyrics_sentiment %>% 
   group_by(Album, Song, sentiment) %>%
@@ -264,7 +275,7 @@ song_sentiment <- lyrics_sentiment %>%
   ungroup()
 
 # add up the negative and positive sentiment to get a total
-total_song_sentiment <- song_sentiment %>%
+song_sentiment <- song_sentiment %>%
   group_by(Album, Song) %>%
   mutate(total_sentiment = sum(sentiment_count)) %>%
   select(Artist, Album, Year, Song, total_sentiment) %>%
@@ -272,16 +283,38 @@ total_song_sentiment <- song_sentiment %>%
   ungroup() %>%
   arrange(Year)
 
+# ----------------------------------------------------------
+# Plot sentiment per song as an album progresses
+# ----------------------------------------------------------
+
+# add track number to the dataframe
+tracklist_sentiment <- song_sentiment %>%
+  group_by(Album) %>%
+  mutate(track_num = row_number()) 
+
+ggplot(tracklist_sentiment, aes(x = track_num, y = total_sentiment,
+                               color = Album)) +
+  geom_line() +
+  xlab("Track Number") +
+  ylab("Total Sentiment") +
+  ggtitle(paste("Lyric sentiment by tracklist:", artist_name)) +
+  theme(legend.position = 'none') +
+  facet_wrap(~ Album)
+
+# ----------------------------------------------------------
+# Plot sentiment per song as an improved bar plot
+# ----------------------------------------------------------
+
 # the width of the color regions correspond to the density
 #  of each group. i.e. how crowded or sparse the data is
 pirateplot(formula = total_sentiment ~ Album,
-           data = total_song_sentiment,
+           data = song_sentiment,
            xlab = NULL, ylab = "Song Sentiment",
-           main = "Emotional Diversity per Album",
+           main = paste(artist_name, ": Emotional Diversity per Album", sep=""),
            pal = "google",
            sortx = "sequential", # use the same order as the data.frame
-           bar.f.o = .5, # opacity of bar fill
-           bar.b.o = .5, # opacity of bar border
+           bar.f.o = 0, # opacity of bar fill
+           bar.b.o = 0, # opacity of bar border
            point.o = .2, # opacity of the points
            inf.f.o = 0,  # opacity of inference band fill
            inf.b.o = 0,  # opacity of inference band border
@@ -297,12 +330,12 @@ pirateplot(formula = total_sentiment ~ Album,
 # create Word Cloud based on terms accross all albums
 # ----------------------------------------------------------
 
-# # calculate frequency of each word
-# freq <- colSums(as.matrix(dtm))
-# 
-# # convert to a data frame
-# freq_df <- data.frame(word = names(freq), freq = freq)
-# 
-# # print(freq_df %>% arrange(desc(freq)))
-# 
-# wordcloud(words = freq_df$word, freq = freq_df$freq, min.freq = 11)
+# calculate frequency of each word
+freq <- colSums(as.matrix(dtm))
+
+# convert to a data frame
+freq_df <- data.frame(word = names(freq), freq = freq)
+
+# print(freq_df %>% arrange(desc(freq)))
+
+wordcloud(words = freq_df$word, freq = freq_df$freq, min.freq = 30)
