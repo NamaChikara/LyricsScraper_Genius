@@ -18,12 +18,12 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-To run this code, you will need Python 3.7.1 and R on your. 
+To run this code, you will need Python 3.7.1 and R on your computer.
 
 ### Installing
 
-* Python: https://www.python.org/downloads/
-* R: https://cran.rstudio.com/
+* Python: [https://www.python.org/downloads/](https://www.python.org/downloads/) 
+* R: [https://cran.rstudio.com/](https://cran.rstudio.com/)
 
 ## Customizing behavior
 
